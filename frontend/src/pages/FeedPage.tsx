@@ -2,7 +2,7 @@ import gsap from 'gsap'
 import { useEffect, useMemo, useState } from 'react'
 import { genres, mockArticles, topics } from '../data/mockData'
 
-const COLUMN_COUNT = 4
+const COLUMN_COUNT = 6
 
 const thumbnailForArticle = (seed: string) => {
   return `https://picsum.photos/seed/${seed}/720/420`
@@ -11,22 +11,53 @@ const thumbnailForArticle = (seed: string) => {
 export function FeedPage() {
   const [topic, setTopic] = useState('All')
   const [genre, setGenre] = useState('All')
+  const [query, setQuery] = useState('')
+  const [controlsVisible, setControlsVisible] = useState(true)
 
   useEffect(() => {
     gsap.fromTo(
       '.moving-columns-fullscreen',
       { autoAlpha: 0 },
-      { autoAlpha: 1, duration: 1.1, ease: 'power2.out' },
+      { autoAlpha: 1, duration: 2.2, ease: 'power2.out' },
     )
+  }, [])
+
+  useEffect(() => {
+    let timeoutId: number
+
+    const revealAndScheduleHide = () => {
+      setControlsVisible(true)
+      window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(() => {
+        setControlsVisible(false)
+      }, 2600)
+    }
+
+    revealAndScheduleHide()
+
+    window.addEventListener('mousemove', revealAndScheduleHide)
+    window.addEventListener('touchstart', revealAndScheduleHide)
+    window.addEventListener('keydown', revealAndScheduleHide)
+    window.addEventListener('wheel', revealAndScheduleHide, { passive: true })
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.removeEventListener('mousemove', revealAndScheduleHide)
+      window.removeEventListener('touchstart', revealAndScheduleHide)
+      window.removeEventListener('keydown', revealAndScheduleHide)
+      window.removeEventListener('wheel', revealAndScheduleHide)
+    }
   }, [])
 
   const filteredItems = useMemo(() => {
     return mockArticles.filter((article) => {
       const topicMatch = topic === 'All' || article.topic === topic
       const genreMatch = genre === 'All' || article.genre === genre
-      return topicMatch && genreMatch
+      const searchText = `${article.title} ${article.summary} ${article.source}`.toLowerCase()
+      const queryMatch = query.trim().length === 0 || searchText.includes(query.toLowerCase())
+      return topicMatch && genreMatch && queryMatch
     })
-  }, [genre, topic])
+  }, [genre, query, topic])
 
   const displayItems = filteredItems.length > 0 ? filteredItems : mockArticles
 
@@ -40,17 +71,9 @@ export function FeedPage() {
     return baseColumns.map((column) => [...column, ...column])
   }, [displayItems])
 
-  const emptyNotice = useMemo(() => {
-    if (filteredItems.length > 0) {
-      return 'Columns auto-scroll continuously. Hover a column to pause it.'
-    }
-
-    return 'No exact filter match found. Showing nearest article set.'
-  }, [filteredItems.length])
-
   return (
     <main className="feed-home-root">
-      <div className="feed-controls-overlay">
+      <div className={`feed-controls-overlay ${controlsVisible ? 'visible' : 'hidden'}`}>
         <select value={topic} onChange={(event) => setTopic(event.target.value)}>
           {topics.map((value) => (
             <option key={value} value={value}>
@@ -58,6 +81,14 @@ export function FeedPage() {
             </option>
           ))}
         </select>
+
+        <input
+          className="feed-search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search news"
+          aria-label="Search news"
+        />
 
         <select value={genre} onChange={(event) => setGenre(event.target.value)}>
           {genres.map((value) => (
@@ -85,15 +116,7 @@ export function FeedPage() {
                       }}
                     />
                     <div className="moving-card-content">
-                      <div className="pill-row">
-                        <span className="pill">{article.topic}</span>
-                        <span className="pill">{article.genre}</span>
-                      </div>
                       <h3 className="card-title">{article.title}</h3>
-                      <p className="card-description">{article.summary}</p>
-                      <div className="muted">
-                        {article.source} · {article.publishedAt}
-                      </div>
                     </div>
                   </article>
                 ))}
@@ -102,8 +125,6 @@ export function FeedPage() {
           ))}
         </div>
       </section>
-
-      <p className="feed-status-overlay">{emptyNotice}</p>
     </main>
   )
 }
