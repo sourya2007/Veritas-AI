@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: Helvetica, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
   color: #e8ecff;
   background: #000;
@@ -22,7 +22,7 @@ button,
 input,
 select,
 textarea {
-  font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: Helvetica, 'Helvetica Neue', Arial, sans-serif;
 }
 
 html,
@@ -348,7 +348,7 @@ a {
 }
 
 .moving-column {
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -360,11 +360,11 @@ a {
 }
 
 .column-up .moving-column-track {
-  animation: driftUp 70s linear infinite;
+  animation: driftUp 110s linear infinite;
 }
 
 .column-down .moving-column-track {
-  animation: driftDown 70s linear infinite;
+  animation: driftDown 110s linear infinite;
 }
 
 .moving-column:hover .moving-column-track {
@@ -382,7 +382,7 @@ a {
 }
 
 .moving-article-card:hover {
-  transform: scale(1.06);
+  transform: scale(1.25);
   border-color: rgba(255, 255, 255, 0.58);
   z-index: 2;
   position: relative;
@@ -400,7 +400,7 @@ a {
 
 .moving-article-card:hover .article-thumb {
   filter: grayscale(0%);
-  transform: scale(1.08);
+  transform: scale(1);
 }
 
 .moving-card-content {
@@ -649,5 +649,76 @@ a {
   .feed-search-status {
     top: 3.5rem;
     font-size: 0.8rem;
+  }
+}
+
+/* Article Reader Styles */
+.article-reader {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.article-header {
+  margin-bottom: 2rem;
+  border-bottom: 2px solid rgba(138, 140, 255, 0.2);
+  padding-bottom: 1.5rem;
+}
+
+.article-headline {
+  margin: 0 0 1rem 0;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.2;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.article-source {
+  color: #a8b7e8;
+  font-weight: 600;
+}
+
+.article-separator {
+  opacity: 0.6;
+}
+
+.article-date {
+  opacity: 0.8;
+}
+
+.article-body-container {
+  margin: 2rem 0;
+}
+
+.article-body {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.8;
+  color: #e8ecff;
+  text-align: justify;
+  letter-spacing: 0.3px;
+  word-spacing: 0.1em;
+}
+
+@media (max-width: 900px) {
+  .article-reader {
+    margin: 0;
+  }
+
+  .article-headline {
+    font-size: clamp(1.5rem, 5vw, 2.2rem);
+  }
+
+  .article-body {
+    font-size: 1.02rem;
+    text-align: left;
   }
 }

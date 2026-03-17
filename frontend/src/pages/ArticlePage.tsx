@@ -57,16 +57,22 @@ export function ArticlePage() {
       {!loading && !article && <section className="panel">Article not found.</section>}
 
       {!loading && article && (
-        <article className="panel">
-          <h2 className="card-title" style={{ marginBottom: '0.7rem' }}>
-            {article.title}
-          </h2>
-          <p className="subtext" style={{ marginBottom: '1rem' }}>
-            {article.source.name} · {article.published_at}
-          </p>
-          <p className="card-description" style={{ marginBottom: '1rem' }}>
-            {article.body ?? article.summary}
-          </p>
+        <article className="panel article-reader">
+          <div className="article-header">
+            <h1 className="article-headline">
+              {article.title}
+            </h1>
+            <div className="article-meta">
+              <span className="article-source">{article.source.name}</span>
+              <span className="article-separator">·</span>
+              <span className="article-date">{article.published_at}</span>
+            </div>
+          </div>
+          <div className="article-body-container">
+            <p className="article-body">
+              {article.body ?? article.summary}
+            </p>
+          </div>
         </article>
       )}
     </main>
