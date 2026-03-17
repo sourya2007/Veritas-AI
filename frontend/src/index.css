@@ -488,7 +488,7 @@ a {
   padding: 0.38rem 0.45rem;
   backdrop-filter: blur(8px);
   transition: opacity 260ms ease, transform 260ms ease;
-  min-width: min(760px, 94vw);
+  min-width: min(520px, 94vw);
 }
 
 .feed-controls-overlay.visible {
@@ -503,18 +503,12 @@ a {
   pointer-events: none;
 }
 
-.feed-controls-overlay select {
-  background: rgba(0, 0, 0, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 0.55rem;
-  color: #fff;
-  padding: 0.52rem 0.68rem;
+.feed-search-form {
+  width: min(500px, 88vw);
 }
 
 .feed-search {
-  min-width: 320px;
-  flex: 1;
-  max-width: 460px;
+  width: 100%;
   background: rgba(0, 0, 0, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 999px;
@@ -524,6 +518,61 @@ a {
 
 .feed-search::placeholder {
   color: rgba(255, 255, 255, 0.62);
+}
+
+.feed-verify-cta {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.feed-verify-cta.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.feed-verify-cta.hidden {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+.feed-verify-link {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #fff;
+  padding: 0.52rem 0.85rem;
+  backdrop-filter: blur(8px);
+}
+
+.feed-empty-state {
+  position: absolute;
+  inset: auto 0 1.8rem;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.feed-search-status {
+  position: absolute;
+  top: 4.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.86rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  backdrop-filter: blur(6px);
 }
 
 @keyframes driftUp {
@@ -588,10 +637,17 @@ a {
     padding: 0.35rem;
   }
 
-  .feed-controls-overlay select,
   .feed-search {
-    min-width: 0;
-    width: 34%;
     font-size: 0.82rem;
+  }
+
+  .feed-verify-cta {
+    top: 0.65rem;
+    right: 0.65rem;
+  }
+
+  .feed-search-status {
+    top: 3.5rem;
+    font-size: 0.8rem;
   }
 }

@@ -12,11 +12,12 @@ def get_feed(
     topic: str | None = Query(default=None),
     genre: str | None = Query(default=None),
     source: str | None = Query(default=None),
+    search: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=24, ge=1, le=100),
 ):
     items, total = feed_service.list_articles(
-        FeedQuery(topic=topic, genre=genre, source=source, page=page, page_size=page_size)
+        FeedQuery(topic=topic, genre=genre, source=source, search=search, page=page, page_size=page_size)
     )
     return FeedResponse(page=page, page_size=page_size, total=total, items=items)
 

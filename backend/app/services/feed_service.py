@@ -32,6 +32,7 @@ class FeedQuery:
     topic: str | None = None
     genre: str | None = None
     source: str | None = None
+    search: str | None = None
     page: int = 1
     page_size: int = 24
 
@@ -143,6 +144,14 @@ class FeedService:
         if query.source:
             lowered = query.source.lower()
             filtered = [item for item in filtered if lowered in item.source.name.lower()]
+        if query.search:
+            needle = query.search.strip().lower()
+            if needle:
+                filtered = [
+                    item
+                    for item in filtered
+                    if needle in f"{item.title} {item.summary} {item.source.name}".lower()
+                ]
 
         total = len(filtered)
         start = (query.page - 1) * query.page_size

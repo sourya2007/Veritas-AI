@@ -1,7 +1,7 @@
 import gsap from 'gsap'
-import { useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { genres, mockArticles, topics } from '../data/mockData'
+import { mockArticles } from '../data/mockData'
 import { apiGet } from '../lib/api'
 import type { Article, FeedApiItem } from '../types'
 
@@ -26,9 +26,10 @@ const normalizeItem = (item: FeedApiItem): Article => {
 }
 
 export function FeedPage() {
-  const [topic, setTopic] = useState('All')
-  const [genre, setGenre] = useState('All')
   const [query, setQuery] = useState('')
+  const [activeQuery, setActiveQuery] = useState('')
+  const [searchToken, setSearchToken] = useState(0)
+  const [isSearching, setIsSearching] = useState(false)
   const [controlsVisible, setControlsVisible] = useState(true)
   const [articles, setArticles] = useState<Article[]>(mockArticles)
 
@@ -71,15 +72,28 @@ export function FeedPage() {
     let active = true
 
     const loadFeed = async () => {
+      if (activeQuery.trim().length > 0 || searchToken > 0) {
+        setIsSearching(true)
+      }
+
       try {
-        const response = await apiGet<{ items: FeedApiItem[] }>('/api/feed?page=1&page_size=72')
+        const search = activeQuery.trim()
+        const params = new URLSearchParams({ page: '1', page_size: '72' })
+        if (search.length > 0) {
+          params.set('search', search)
+        }
+        const response = await apiGet<{ items: FeedApiItem[] }>(`/api/feed?${params.toString()}`)
         const normalized = response.items.map(normalizeItem)
-        if (active && normalized.length > 0) {
+        if (active) {
           setArticles(normalized)
         }
       } catch {
         if (active) {
-          setArticles(mockArticles)
+          setArticles(activeQuery.trim().length > 0 ? [] : mockArticles)
+        }
+      } finally {
+        if (active) {
+          setIsSearching(false)
         }
       }
     }
@@ -89,19 +103,15 @@ export function FeedPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [activeQuery, searchToken])
 
-  const filteredItems = useMemo(() => {
-    return articles.filter((article) => {
-      const topicMatch = topic === 'All' || article.topic === topic
-      const genreMatch = genre === 'All' || article.genre === genre
-      const searchText = `${article.title} ${article.summary} ${article.source}`.toLowerCase()
-      const queryMatch = query.trim().length === 0 || searchText.includes(query.toLowerCase())
-      return topicMatch && genreMatch && queryMatch
-    })
-  }, [articles, genre, query, topic])
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setActiveQuery(query.trim())
+    setSearchToken((value) => value + 1)
+  }
 
-  const displayItems = filteredItems.length > 0 ? filteredItems : articles
+  const displayItems = articles
 
   const columns = useMemo(() => {
     const baseColumns = Array.from({ length: COLUMN_COUNT }, () => []) as typeof displayItems[]
@@ -116,30 +126,24 @@ export function FeedPage() {
   return (
     <main className="feed-home-root">
       <div className={`feed-controls-overlay ${controlsVisible ? 'visible' : 'hidden'}`}>
-        <select value={topic} onChange={(event) => setTopic(event.target.value)}>
-          {topics.map((value) => (
-            <option key={value} value={value}>
-              Topic: {value}
-            </option>
-          ))}
-        </select>
-
-        <input
-          className="feed-search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search news"
-          aria-label="Search news"
-        />
-
-        <select value={genre} onChange={(event) => setGenre(event.target.value)}>
-          {genres.map((value) => (
-            <option key={value} value={value}>
-              Genre: {value}
-            </option>
-          ))}
-        </select>
+        <form className="feed-search-form" onSubmit={handleSearchSubmit}>
+          <input
+            className="feed-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Type and press Enter to search"
+            aria-label="Search news"
+          />
+        </form>
       </div>
+
+      <div className={`feed-verify-cta ${controlsVisible ? 'visible' : 'hidden'}`}>
+        <Link to="/verify" className="feed-verify-link">
+          AI News Verifier
+        </Link>
+      </div>
+
+      {isSearching && <div className="feed-search-status">Searching…</div>}
 
       <section className="moving-columns moving-columns-fullscreen" aria-label="moving article columns">
         <div className="moving-columns-grid moving-columns-grid-fullscreen">
@@ -167,6 +171,10 @@ export function FeedPage() {
           ))}
         </div>
       </section>
+
+      {!isSearching && activeQuery.length > 0 && displayItems.length === 0 && (
+        <div className="feed-empty-state">No results found for “{activeQuery}”.</div>
+      )}
     </main>
   )
 }

@@ -67,11 +67,6 @@ export function ArticlePage() {
           <p className="card-description" style={{ marginBottom: '1rem' }}>
             {article.body ?? article.summary}
           </p>
-          {article.url && (
-            <a href={article.url} target="_blank" rel="noreferrer" className="magnetic-button" style={{ display: 'inline-block' }}>
-              Open Original Source
-            </a>
-          )}
         </article>
       )}
     </main>
