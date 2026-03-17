@@ -1,0 +1,36 @@
+{
+  "dataset": "demo_dataset.jsonl",
+  "model_name": "standard-library-multinomial-naive-bayes",
+  "labels": [
+    "fake",
+    "real"
+  ],
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0
+  },
+  "top_tokens": {
+    "fake": [
+      "a",
+      "the",
+      "secret",
+      "miracle",
+      "public",
+      "that",
+      "and",
+      "no"
+    ],
+    "real": [
+      "the",
+      "and",
+      "a",
+      "in",
+      "published",
+      "its",
+      "on",
+      "public"
+    ]
+  }
+}
