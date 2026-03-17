@@ -1,6 +1,9 @@
 import gsap from 'gsap'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { genres, mockArticles, topics } from '../data/mockData'
+import { apiGet } from '../lib/api'
+import type { Article, FeedApiItem } from '../types'
 
 const COLUMN_COUNT = 6
 
@@ -8,11 +11,26 @@ const thumbnailForArticle = (seed: string) => {
   return `https://picsum.photos/seed/${seed}/720/420`
 }
 
+const normalizeItem = (item: FeedApiItem): Article => {
+  return {
+    id: item.id,
+    title: item.title,
+    summary: item.summary,
+    source: item.source.name,
+    publishedAt: item.published_at,
+    topic: item.topic,
+    genre: item.genre,
+    imageUrl: item.thumbnail_url ?? undefined,
+    articleUrl: item.url ?? undefined,
+  }
+}
+
 export function FeedPage() {
   const [topic, setTopic] = useState('All')
   const [genre, setGenre] = useState('All')
   const [query, setQuery] = useState('')
   const [controlsVisible, setControlsVisible] = useState(true)
+  const [articles, setArticles] = useState<Article[]>(mockArticles)
 
   useEffect(() => {
     gsap.fromTo(
@@ -49,17 +67,41 @@ export function FeedPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let active = true
+
+    const loadFeed = async () => {
+      try {
+        const response = await apiGet<{ items: FeedApiItem[] }>('/api/feed?page=1&page_size=72')
+        const normalized = response.items.map(normalizeItem)
+        if (active && normalized.length > 0) {
+          setArticles(normalized)
+        }
+      } catch {
+        if (active) {
+          setArticles(mockArticles)
+        }
+      }
+    }
+
+    void loadFeed()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   const filteredItems = useMemo(() => {
-    return mockArticles.filter((article) => {
+    return articles.filter((article) => {
       const topicMatch = topic === 'All' || article.topic === topic
       const genreMatch = genre === 'All' || article.genre === genre
       const searchText = `${article.title} ${article.summary} ${article.source}`.toLowerCase()
       const queryMatch = query.trim().length === 0 || searchText.includes(query.toLowerCase())
       return topicMatch && genreMatch && queryMatch
     })
-  }, [genre, query, topic])
+  }, [articles, genre, query, topic])
 
-  const displayItems = filteredItems.length > 0 ? filteredItems : mockArticles
+  const displayItems = filteredItems.length > 0 ? filteredItems : articles
 
   const columns = useMemo(() => {
     const baseColumns = Array.from({ length: COLUMN_COUNT }, () => []) as typeof displayItems[]
@@ -108,17 +150,17 @@ export function FeedPage() {
             >
               <div className="moving-column-track">
                 {column.map((article, articleIndex) => (
-                  <article className="moving-article-card" key={`${article.id}-${articleIndex}`}>
+                  <Link to={`/article/${article.id}`} className="moving-article-card" key={`${article.id}-${articleIndex}`}>
                     <div
                       className="article-thumb"
                       style={{
-                        backgroundImage: `url(${thumbnailForArticle(article.id)})`,
+                        backgroundImage: `url(${article.imageUrl || thumbnailForArticle(article.id)})`,
                       }}
                     />
                     <div className="moving-card-content">
                       <h3 className="card-title">{article.title}</h3>
                     </div>
-                  </article>
+                  </Link>
                 ))}
               </div>
             </div>

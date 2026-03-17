@@ -1,22 +1,61 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ShinyText } from '../components/reactbits/ShinyText'
 import Magnet from '../components/reactbits-official/Magnet'
-
-const metrics = [
-  { label: 'F1 Score', value: '0.88' },
-  { label: 'Precision', value: '0.90' },
-  { label: 'Recall', value: '0.86' },
-  { label: 'ROC-AUC', value: '0.92' },
-]
+import { apiGet, apiPost } from '../lib/api'
+import type { ModelInferApiResponse, ModelMetricsApiResponse } from '../types'
 
 export function ModelShowcasePage() {
   const [text, setText] = useState('Breaking: Local authority confirms vaccine microchip mandate begins this weekend.')
-  const [prediction, setPrediction] = useState('Likely Fake')
+  const [inference, setInference] = useState<ModelInferApiResponse | null>(null)
+  const [metricsPayload, setMetricsPayload] = useState<ModelMetricsApiResponse | null>(null)
 
-  const runLocalInference = () => {
-    const riskyWords = ['microchip', 'secret', 'hoax', 'banned', 'leak']
-    const matched = riskyWords.some((word) => text.toLowerCase().includes(word))
-    setPrediction(matched ? 'Likely Fake' : 'Likely Reliable')
+  useEffect(() => {
+    let active = true
+    const loadMetrics = async () => {
+      try {
+        const payload = await apiGet<ModelMetricsApiResponse>('/api/model/metrics')
+        if (active) {
+          setMetricsPayload(payload)
+        }
+      } catch {
+        if (active) {
+          setMetricsPayload(null)
+        }
+      }
+    }
+
+    void loadMetrics()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const metrics = useMemo(() => {
+    if (!metricsPayload) {
+      return [
+        { label: 'F1 Score', value: '0.88' },
+        { label: 'Precision', value: '0.90' },
+        { label: 'Recall', value: '0.86' },
+        { label: 'ROC-AUC', value: '0.92' },
+      ]
+    }
+
+    return [
+      { label: 'F1 Score', value: metricsPayload.metrics.f1?.toFixed(2) ?? '--' },
+      { label: 'Precision', value: metricsPayload.metrics.precision?.toFixed(2) ?? '--' },
+      { label: 'Recall', value: metricsPayload.metrics.recall?.toFixed(2) ?? '--' },
+      { label: 'ROC-AUC', value: metricsPayload.metrics.roc_auc?.toFixed(2) ?? '--' },
+    ]
+  }, [metricsPayload])
+
+  const runLocalInference = async () => {
+    try {
+      const payload = await apiPost<ModelInferApiResponse, { text: string }>('/api/model/infer', { text })
+      setInference(payload)
+    } catch {
+      setInference({ label: 'Unavailable', confidence: 0, top_signals: ['backend unavailable'] })
+    }
   }
 
   return (
@@ -32,7 +71,7 @@ export function ModelShowcasePage() {
       <section className="model-grid">
         <article className="panel">
           <h3 className="card-title">Training Snapshot</h3>
-          <p className="subtext">Dataset blend: LIAR + FakeNewsNet + local curated samples</p>
+          <p className="subtext">{metricsPayload?.dataset ?? 'Dataset blend: LIAR + FakeNewsNet + local curated samples'}</p>
           <div className="metrics" style={{ marginTop: '1rem' }}>
             {metrics.map((metric) => (
               <div className="metric-card" key={metric.label}>
@@ -54,15 +93,18 @@ export function ModelShowcasePage() {
           />
           <div style={{ marginTop: '0.7rem' }}>
             <Magnet>
-              <button className="magnetic-button" onClick={runLocalInference} type="button">
+              <button className="magnetic-button" onClick={() => void runLocalInference()} type="button">
                 Run Local Prediction
               </button>
             </Magnet>
           </div>
           <p className="metric-value" style={{ marginTop: '1rem' }}>
-            {prediction}
+            {inference?.label ?? 'Awaiting prediction'}
           </p>
-          <p className="subtext">Confidence: 0.83 · Top signals: sensational phrasing, unsupported certainty</p>
+          <p className="subtext">
+            Confidence: {inference ? inference.confidence.toFixed(2) : '--'} · Top signals:{' '}
+            {inference?.top_signals.join(', ') ?? 'run inference to view'}
+          </p>
         </article>
       </section>
     </main>

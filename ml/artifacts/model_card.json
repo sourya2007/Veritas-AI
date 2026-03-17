@@ -1,0 +1,12 @@
+{
+  "model": "Lexical baseline + heuristic scoring",
+  "trained_at": "2026-03-17T17:23:33.708918+00:00",
+  "dataset": "Synthetic starter dataset (replace with LIAR/FakeNewsNet for production)",
+  "metrics": {
+    "f1": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "roc_auc": 0.5
+  },
+  "notes": "Baseline local model for end-to-end demo and API integration."
+}

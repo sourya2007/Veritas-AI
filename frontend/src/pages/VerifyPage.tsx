@@ -1,59 +1,46 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ShinyText } from '../components/reactbits/ShinyText'
-import type { VerificationEvidence } from '../types'
 import SpotlightCard from '../components/reactbits-official/SpotlightCard'
 import Magnet from '../components/reactbits-official/Magnet'
-
-const mockEvidence: VerificationEvidence[] = [
-  {
-    source: 'WHO Situation Bulletin',
-    snippet: 'Current bulletin does not report the claimed nationwide outbreak pattern.',
-    stance: 'contradicts',
-  },
-  {
-    source: 'National Public Health Agency',
-    snippet: 'Official advisory confirms localized increase but no broad emergency declaration.',
-    stance: 'supports',
-  },
-  {
-    source: 'Reuters Fact Check',
-    snippet: 'Claim appears to combine old statistics with new events, causing misleading context.',
-    stance: 'neutral',
-  },
-]
+import { apiPost } from '../lib/api'
+import type { VerificationEvidence, VerifyApiResponse } from '../types'
 
 export function VerifyPage() {
   const [claim, setClaim] = useState('')
   const [progress, setProgress] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
+  const [result, setResult] = useState<VerifyApiResponse | null>(null)
 
-  const verdict = useMemo(() => {
-    if (progress < 100) {
-      return 'Analyzing...'
-    }
-
-    return 'Mixed / Needs Context'
-  }, [progress])
-
-  const runVerification = () => {
+  const runVerification = async () => {
     if (!claim.trim() || isRunning) {
       return
     }
 
     setIsRunning(true)
-    setProgress(0)
+    setResult(null)
+    setProgress(22)
 
-    let value = 0
-    const timer = setInterval(() => {
-      value += 20
-      setProgress(Math.min(100, value))
-
-      if (value >= 100) {
-        clearInterval(timer)
-        setIsRunning(false)
-      }
-    }, 450)
+    try {
+      const response = await apiPost<VerifyApiResponse, { claim_text: string }>('/api/verify', {
+        claim_text: claim,
+      })
+      setProgress(100)
+      setResult(response)
+    } catch {
+      setProgress(100)
+      setResult({
+        verdict: 'Unverified',
+        confidence: 0.3,
+        evidence: [],
+        explanation: 'Verification failed. Please retry shortly.',
+        disclaimer: 'This assistant provides decision support, not absolute truth.',
+      })
+    } finally {
+      setIsRunning(false)
+    }
   }
+
+  const evidence: VerificationEvidence[] = result?.evidence ?? []
 
   return (
     <main className="page">
@@ -70,7 +57,7 @@ export function VerifyPage() {
           className="verify-form"
           onSubmit={(event) => {
             event.preventDefault()
-            runVerification()
+            void runVerification()
           }}
         >
           <label htmlFor="claim" className="subtext">
@@ -99,17 +86,20 @@ export function VerifyPage() {
         <SpotlightCard className="panel">
           <div className="spotlight-inner">
             <h3 className="card-title">Verdict</h3>
-            <p className="metric-value">{verdict}</p>
-            <p className="subtext">Confidence: {progress === 100 ? '0.71' : '--'}</p>
+            <p className="metric-value">{result?.verdict ?? (isRunning ? 'Analyzing...' : 'Awaiting input')}</p>
+            <p className="subtext">Confidence: {result ? result.confidence.toFixed(2) : '--'}</p>
+            <p className="subtext">{result?.explanation ?? 'Run verification to see internet evidence.'}</p>
             <div className="evidence-list">
-              {mockEvidence.map((evidence) => (
-                <div key={evidence.source} className="evidence-item">
-                  <strong>{evidence.source}</strong>
-                  <p className="card-description">{evidence.snippet}</p>
-                  <span className="pill">{evidence.stance}</span>
+              {evidence.map((item) => (
+                <div key={`${item.source}-${item.snippet}`} className="evidence-item">
+                  <strong>{item.source}</strong>
+                  <p className="card-description">{item.snippet}</p>
+                  <span className="pill">{item.stance}</span>
                 </div>
               ))}
+              {result && evidence.length === 0 && <div className="muted">No evidence snippets available.</div>}
             </div>
+            {result && <p className="muted">{result.disclaimer}</p>}
           </div>
         </SpotlightCard>
       </section>

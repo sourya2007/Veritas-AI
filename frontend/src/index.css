@@ -372,6 +372,7 @@ a {
 }
 
 .moving-article-card {
+  display: block;
   background: #0d0d0d;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 0.9rem;
