@@ -1,5 +1,6 @@
 # Veritas AI
 https://sourya2007.github.io/Veritas-AI/
+
 Veritas AI is a full-stack fake-news analysis platform with:
 
 - Live global news feed ingestion from RSS sources
