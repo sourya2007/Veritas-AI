@@ -13,15 +13,15 @@ const DEMO_SAMPLES = [
 ]
 
 const TRUE_NEWS_SAMPLES = [
-  'Reuters: Federal Reserve keeps interest rates unchanged amid inflation concerns.',
-  'BBC: Parliament passes revised public health spending bill after final vote.',
-  'AP: Health ministry expands seasonal flu vaccination coverage for seniors.',
+  'The Federal Reserve announced today that it will maintain its current interest rates at 5.25-5.5% amid persistent inflation concerns. Chair Jerome Powell stated in a press conference that economic data suggests a measured approach is warranted. Markets responded with a 1.2% gain on the S&P 500.',
+  'Parliament voted 342 to 156 in favor of a revised public health spending bill that allocates an additional 2 billion pounds to the National Health Service. The legislation passed its final reading this afternoon with cross-party support.',
+  'The World Health Organization has launched an expanded vaccination campaign targeting seasonal influenza in developing nations. More than 50 countries have pledged to participate in the initiative announced by WHO Director-General.',
 ]
 
 const FAKE_NEWS_SAMPLES = [
-  'FAKE: NASA confirms Earth will go completely dark for six days next month.',
-  'HOAX: Government to seize all private savings accounts starting Monday morning.',
-  'VIRAL CLAIM: Drinking silver water cures all cancers in 48 hours.',
+  'Breaking news: Scientists have discovered a hidden technology that will revolutionize everything and hide the truth from you forever. Governments do not want you to know about this shocking secret that billionaires are using to control everyone and nobody is telling you the real truth.',
+  'Shocking new evidence proves that every major news organization is completely controlled by evil forces and spreading lies to the public. Millions of people are waking up to this conspiracy that authorities never want exposed and you must share this immediately.',
+  'A miracle cure has been suppressed from the public for decades and is guaranteed to heal any disease instantly. Medical doctors refuse to acknowledge this proven treatment because pharmaceutical companies are preventing it to make money off people.',
 ]
 
 type DemoResult = {
