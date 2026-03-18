@@ -1,4 +1,3 @@
-import gsap from 'gsap'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import StaggeredMenu from '../components/StaggeredMenu'
