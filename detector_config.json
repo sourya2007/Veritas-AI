@@ -1,0 +1,7 @@
+{
+  "num_words": 12000,
+  "max_len": 120,
+  "real_threshold": 0.5,
+  "model_file": "detector_model.keras",
+  "h5_saved": true
+}

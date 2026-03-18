@@ -2,20 +2,50 @@ import { useEffect, useMemo, useState } from 'react'
 import { ShinyText } from '../components/reactbits/ShinyText'
 import Magnet from '../components/reactbits-official/Magnet'
 import { apiGet, apiPost } from '../lib/api'
-import type { ModelInferApiResponse, ModelMetricsApiResponse } from '../types'
+import type { ModelInferApiResponse, ModelMetricsApiResponse, VerifyApiResponse } from '../types'
+
+const DEMO_SAMPLES = [
+  'Reuters: Federal Reserve keeps interest rates unchanged amid inflation concerns.',
+  'CNN reports UN climate summit reaches provisional emissions framework agreement.',
+  'FAKE: NASA confirms Earth will go completely dark for six days next month.',
+  'HOAX: Government to seize all private savings accounts starting Monday morning.',
+  'BBC: Parliament passes revised public health spending bill after final vote.',
+]
+
+const TRUE_NEWS_SAMPLES = [
+  'Reuters: Federal Reserve keeps interest rates unchanged amid inflation concerns.',
+  'BBC: Parliament passes revised public health spending bill after final vote.',
+  'AP: Health ministry expands seasonal flu vaccination coverage for seniors.',
+]
+
+const FAKE_NEWS_SAMPLES = [
+  'FAKE: NASA confirms Earth will go completely dark for six days next month.',
+  'HOAX: Government to seize all private savings accounts starting Monday morning.',
+  'VIRAL CLAIM: Drinking silver water cures all cancers in 48 hours.',
+]
+
+type DemoResult = {
+  sample: string
+  infer?: ModelInferApiResponse
+  verify?: VerifyApiResponse
+  error?: string
+}
 
 export function ModelShowcasePage() {
   const [text, setText] = useState('Breaking: Local authority confirms vaccine microchip mandate begins this weekend.')
   const [inference, setInference] = useState<ModelInferApiResponse | null>(null)
   const [metricsPayload, setMetricsPayload] = useState<ModelMetricsApiResponse | null>(null)
+  const [isRunningInference, setIsRunningInference] = useState(false)
+  const [isDemoRunning, setIsDemoRunning] = useState(false)
+  const [demoResults, setDemoResults] = useState<DemoResult[]>([])
 
   useEffect(() => {
     let active = true
     const loadMetrics = async () => {
       try {
-        const payload = await apiGet<ModelMetricsApiResponse>('/api/model/metrics')
+        const metrics = await apiGet<ModelMetricsApiResponse>('/api/model/metrics')
         if (active) {
-          setMetricsPayload(payload)
+          setMetricsPayload(metrics)
         }
       } catch {
         if (active) {
@@ -25,9 +55,13 @@ export function ModelShowcasePage() {
     }
 
     void loadMetrics()
+    const intervalId = window.setInterval(() => {
+      void loadMetrics()
+    }, 5000)
 
     return () => {
       active = false
+      window.clearInterval(intervalId)
     }
   }, [])
 
@@ -50,12 +84,59 @@ export function ModelShowcasePage() {
   }, [metricsPayload])
 
   const runLocalInference = async () => {
+    if (!text.trim() || isRunningInference || isDemoRunning) {
+      return
+    }
+
+    setIsRunningInference(true)
     try {
       const payload = await apiPost<ModelInferApiResponse, { text: string }>('/api/model/infer', { text })
       setInference(payload)
     } catch {
       setInference({ label: 'Unavailable', confidence: 0, top_signals: ['backend unavailable'] })
+    } finally {
+      setIsRunningInference(false)
     }
+  }
+
+  const runDemoSamples = async () => {
+    if (isRunningInference || isDemoRunning) {
+      return
+    }
+
+    setIsDemoRunning(true)
+    setDemoResults([])
+
+    const nextResults: DemoResult[] = []
+    for (const sample of DEMO_SAMPLES) {
+      try {
+        const [infer, verify] = await Promise.all([
+          apiPost<ModelInferApiResponse, { text: string }>('/api/model/infer', { text: sample }),
+          apiPost<VerifyApiResponse, { claim_text: string }>('/api/verify', { claim_text: sample }),
+        ])
+        nextResults.push({ sample, infer, verify })
+      } catch {
+        nextResults.push({ sample, error: 'Demo sample request failed.' })
+      }
+      setDemoResults([...nextResults])
+    }
+
+    setIsDemoRunning(false)
+  }
+
+  const predictionMetrics = useMemo(
+    () => [
+      { label: 'Predictions Served', value: String(metricsPayload?.prediction_count ?? 0) },
+      { label: 'Last Prediction (ms)', value: metricsPayload ? metricsPayload.last_prediction_ms.toFixed(2) : '--' },
+      { label: 'Avg Prediction (ms)', value: metricsPayload ? metricsPayload.avg_prediction_ms.toFixed(2) : '--' },
+      { label: 'Overall Model Score', value: metricsPayload ? metricsPayload.overall_score.toFixed(3) : '--' },
+    ],
+    [metricsPayload],
+  )
+
+  const loadSampleForInference = (sample: string) => {
+    setText(sample)
+    setInference(null)
   }
 
   return (
@@ -63,15 +144,18 @@ export function ModelShowcasePage() {
       <header className="page-header">
         <div>
           <ShinyText>Local Model Showcase</ShinyText>
-          <p className="subtext">Demonstration of locally trained Python fake-news classifier outputs.</p>
+          <p className="subtext">Prediction-only dashboard for local model inference, statistical metrics, and demo runs.</p>
         </div>
-        <span className="status-badge">Offline Model Inference</span>
+        <span className="status-badge">Local Prediction Metrics</span>
       </header>
 
       <section className="model-grid">
         <article className="panel">
-          <h3 className="card-title">Training Snapshot</h3>
-          <p className="subtext">{metricsPayload?.dataset ?? 'Dataset blend: LIAR + FakeNewsNet + local curated samples'}</p>
+          <h3 className="card-title">Model + Dataset</h3>
+          <p className="subtext">{metricsPayload?.model_name ?? 'Loading model metadata...'}</p>
+          <p className="subtext">{metricsPayload?.dataset ?? 'Loading dataset metadata...'}</p>
+          <p className="subtext">Trained at: {metricsPayload?.trained_at ?? '--'}</p>
+          <p className="subtext">Mode: {metricsPayload?.mode ?? '--'}</p>
           <div className="metrics" style={{ marginTop: '1rem' }}>
             {metrics.map((metric) => (
               <div className="metric-card" key={metric.label}>
@@ -80,23 +164,69 @@ export function ModelShowcasePage() {
               </div>
             ))}
           </div>
+
+          <div style={{ marginTop: '1rem' }}>
+            <h4 className="card-title" style={{ fontSize: '0.98rem', marginBottom: '0.55rem' }}>
+              Sample Inputs for Local Testing
+            </h4>
+            <p className="muted" style={{ margin: '0 0 0.55rem 0' }}>
+              Click any sample to load it into the inference playground.
+            </p>
+
+            <p className="muted" style={{ margin: 0 }}>True News Samples</p>
+            <ul style={{ margin: '0.4rem 0 0.8rem 1rem', padding: 0, lineHeight: 1.4 }}>
+              {TRUE_NEWS_SAMPLES.map((sample) => (
+                <li key={sample} className="subtext" style={{ marginBottom: '0.35rem' }}>
+                  <button
+                    type="button"
+                    className="demo-button"
+                    style={{ textAlign: 'left', width: '100%' }}
+                    onClick={() => loadSampleForInference(sample)}
+                    disabled={isRunningInference || isDemoRunning}
+                  >
+                    {sample}
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <p className="muted" style={{ margin: 0 }}>Fake News Samples</p>
+            <ul style={{ margin: '0.4rem 0 0 1rem', padding: 0, lineHeight: 1.4 }}>
+              {FAKE_NEWS_SAMPLES.map((sample) => (
+                <li key={sample} className="subtext" style={{ marginBottom: '0.35rem' }}>
+                  <button
+                    type="button"
+                    className="demo-button"
+                    style={{ textAlign: 'left', width: '100%' }}
+                    onClick={() => loadSampleForInference(sample)}
+                    disabled={isRunningInference || isDemoRunning}
+                  >
+                    {sample}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </article>
 
         <article className="panel">
           <h3 className="card-title">Inference Playground</h3>
-          <p className="subtext">Model: TF-IDF + Logistic Regression (local Python endpoint)</p>
+          <p className="subtext">Run direct local-model inference on any custom claim text.</p>
           <textarea
             className="verify-textarea"
             value={text}
             onChange={(event) => setText(event.target.value)}
             style={{ marginTop: '0.75rem' }}
           />
-          <div style={{ marginTop: '0.7rem' }}>
+          <div className="verify-actions" style={{ marginTop: '0.7rem' }}>
             <Magnet>
-              <button className="magnetic-button" onClick={() => void runLocalInference()} type="button">
-                Run Local Prediction
+              <button className="magnetic-button" onClick={() => void runLocalInference()} type="button" disabled={isRunningInference || isDemoRunning}>
+                {isRunningInference ? 'Running Inference...' : 'Run Local Prediction'}
               </button>
             </Magnet>
+            <button className="demo-button" type="button" onClick={() => void runDemoSamples()} disabled={isRunningInference || isDemoRunning}>
+              {isDemoRunning ? 'Running Demo Samples...' : 'Run Demo Samples'}
+            </button>
           </div>
           <p className="metric-value" style={{ marginTop: '1rem' }}>
             {inference?.label ?? 'Awaiting prediction'}
@@ -107,6 +237,65 @@ export function ModelShowcasePage() {
           </p>
         </article>
       </section>
+
+      <section className="model-grid" style={{ marginTop: '1rem' }}>
+        <article className="panel">
+          <h3 className="card-title">Prediction Processing Metrics</h3>
+          <div className="metrics" style={{ marginTop: '1rem' }}>
+            {predictionMetrics.map((metric) => (
+              <div className="metric-card" key={metric.label}>
+                <div className="muted">{metric.label}</div>
+                <div className="metric-value">{metric.value}</div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel">
+          <h3 className="card-title">General Model Health</h3>
+          <p className="subtext">Overall score summarizes F1, precision, recall, and ROC-AUC.</p>
+          <div className="metrics" style={{ marginTop: '0.8rem' }}>
+            {[
+              { label: 'Overall Score', value: metricsPayload ? metricsPayload.overall_score.toFixed(3) : '--' },
+              { label: 'Model Mode', value: metricsPayload?.mode ?? '--' },
+            ].map((item) => (
+              <div className="metric-card" key={item.label}>
+                <div className="muted">{item.label}</div>
+                <div className="metric-value">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      {(isDemoRunning || demoResults.length > 0) && (
+        <section className="panel demo-results-panel">
+          <h3 className="card-title">Demo Sample Results</h3>
+          <p className="subtext">Showcase outputs for curated local-model samples.</p>
+
+          <div className="demo-results-list">
+            {demoResults.map((entry) => (
+              <article key={entry.sample} className="demo-result-item">
+                <p className="demo-result-text">{entry.sample}</p>
+                {entry.error ? (
+                  <p className="muted">{entry.error}</p>
+                ) : (
+                  <>
+                    <p className="muted">
+                      Model: {entry.infer?.label ?? 'N/A'} ({entry.infer?.confidence?.toFixed(2) ?? '--'})
+                    </p>
+                    <p className="muted">
+                      Verify: {entry.verify?.verdict ?? 'N/A'} ({entry.verify?.confidence?.toFixed(2) ?? '--'})
+                    </p>
+                    <p className="muted">Signals: {entry.infer?.top_signals?.slice(0, 4).join(', ') ?? 'none'}</p>
+                  </>
+                )}
+              </article>
+            ))}
+            {isDemoRunning && <p className="muted">Processing remaining samples...</p>}
+          </div>
+        </section>
+      )}
     </main>
   )
 }

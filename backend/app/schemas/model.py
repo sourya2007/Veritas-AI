@@ -16,3 +16,8 @@ class ModelMetricsResponse(BaseModel):
     dataset: str
     metrics: dict[str, float]
     trained_at: str
+    overall_score: float = Field(ge=0.0, le=1.0)
+    mode: str
+    prediction_count: int = 0
+    last_prediction_ms: float = Field(ge=0.0)
+    avg_prediction_ms: float = Field(ge=0.0)

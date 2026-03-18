@@ -1,0 +1,14 @@
+Step 1: Opened file
+Step 2: Imported pandas
+Step 3: Loaded 21417 true + 23481 fake rows; usable=44898
+Step 4: Imported TensorFlow
+Step 5: Train=35918, Val=8980
+Step 6: Tokenized train shape=(35918, 120), val shape=(8980, 120)
+Step 7: Model built
+
+Step 8: TRAINING STARTED
+
+STEP 9: TRAINING DONE!
+Final Accuracy: 0.9235
+Final Val Accuracy: 0.9755
+Model, tokenizer, config and metrics saved successfully!

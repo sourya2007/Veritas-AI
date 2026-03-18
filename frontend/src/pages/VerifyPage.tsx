@@ -47,9 +47,9 @@ export function VerifyPage() {
       <header className="page-header">
         <div>
           <ShinyText>Real-time Verification</ShinyText>
-          <p className="subtext">Paste any news claim and verify against live internet source patterns.</p>
+          <p className="subtext">Paste any news claim and verify using local detector model + live internet source patterns.</p>
         </div>
-        <span className="status-badge">Internet Evidence Mode</span>
+        <span className="status-badge">Hybrid Local+Internet Mode</span>
       </header>
 
       <section className="verify-grid">

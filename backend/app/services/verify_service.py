@@ -6,6 +6,7 @@ from collections import Counter
 from urllib.request import urlopen
 
 from app.schemas.verify import EvidenceItem, VerifyResponse
+from app.services.model_service import model_service
 
 
 FACT_CHECK_FEEDS = [
@@ -51,20 +52,31 @@ class VerifyService:
         return evidence[:5]
 
     def _aggregate(self, claim_text: str, evidence: list[EvidenceItem]) -> VerifyResponse:
+        model_result = model_service.infer(claim_text)
+
         if not evidence:
+            model_direction = -1.0 if "fake" in model_result.label.lower() else 1.0
+            confidence = min(0.95, max(0.45, model_result.confidence))
+            verdict = "Likely False" if model_direction < 0 else "Likely True"
             return VerifyResponse(
-                verdict="Unverified",
-                confidence=0.32,
+                verdict=verdict,
+                confidence=round(confidence, 3),
                 evidence=[],
-                explanation="Insufficient live corroborating evidence found across configured internet sources.",
+                explanation=(
+                    "Live corroboration was unavailable; verdict derived from local model inference. "
+                    f"Model label={model_result.label}, confidence={model_result.confidence:.3f}."
+                ),
                 disclaimer="This assistant provides decision support, not absolute truth.",
             )
 
         support_weight = sum(item.reliability_score for item in evidence if item.stance == "supports")
         contradict_weight = sum(item.reliability_score for item in evidence if item.stance == "contradicts")
 
-        delta = support_weight - contradict_weight
-        confidence = min(0.94, max(0.4, 0.55 + abs(delta) * 0.22))
+        evidence_delta = support_weight - contradict_weight
+        model_direction = -1.0 if "fake" in model_result.label.lower() else 1.0
+        model_delta = model_direction * (0.35 + model_result.confidence * 0.35)
+        delta = evidence_delta + model_delta
+        confidence = min(0.96, max(0.45, 0.55 + abs(delta) * 0.2))
 
         if abs(delta) < 0.25:
             verdict = "Mixed"
@@ -75,7 +87,8 @@ class VerifyService:
 
         explanation = (
             f"Verdict is based on live-source corroboration scoring for the claim: '{claim_text[:130]}'. "
-            f"Support weight={support_weight:.2f}, contradiction weight={contradict_weight:.2f}."
+            f"Support weight={support_weight:.2f}, contradiction weight={contradict_weight:.2f}, "
+            f"model label={model_result.label} ({model_result.confidence:.3f})."
         )
 
         return VerifyResponse(

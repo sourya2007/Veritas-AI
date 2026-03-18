@@ -54,4 +54,9 @@ export type ModelMetricsApiResponse = {
   dataset: string
   metrics: Record<string, number>
   trained_at: string
+  overall_score: number
+  mode: string
+  prediction_count: number
+  last_prediction_ms: number
+  avg_prediction_ms: number
 }
