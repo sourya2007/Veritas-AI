@@ -48,11 +48,18 @@ export function FeedPage() {
   const [articles, setArticles] = useState<Article[]>(mockArticles)
 
   useEffect(() => {
-    gsap.fromTo(
-      '.moving-columns-fullscreen',
-      { autoAlpha: 0 },
-      { autoAlpha: 1, duration: 2.2, ease: 'power2.out' },
-    )
+    // Set initial visibility directly instead of animating
+    const elem = document.querySelector('.moving-columns-fullscreen') as HTMLElement
+    if (elem) {
+      elem.style.opacity = '1'
+      elem.style.visibility = 'visible'
+    }
+    // Uncomment below for fade-in animation instead
+    // gsap.fromTo(
+    //   '.moving-columns-fullscreen',
+    //   { autoAlpha: 0 },
+    //   { autoAlpha: 1, duration: 2.2, ease: 'power2.out' },
+    // )
   }, [])
 
   useEffect(() => {
@@ -96,7 +103,7 @@ export function FeedPage() {
         if (search.length > 0) {
           params.set('search', search)
         }
-        const response = await apiGet<{ items: FeedApiItem[] }>(`/api/feed?${params.toString()}`)
+        const response = await apiGet<{ page: number; page_size: number; total: number; items: FeedApiItem[] }>(`/api/feed?${params.toString()}`)
         const normalized = response.items.map(normalizeItem)
         if (active) {
           setArticles(normalized)
