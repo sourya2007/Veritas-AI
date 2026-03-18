@@ -110,14 +110,33 @@ If backend is running on another port (for example 8012), update that value.
     - AI Verification page for claim verification
     - Model Showcase page for local model metrics and demo inference
 
-## Local Model Pipeline
+## Deployment (Vercel)
 
-### Train model artifacts
+### Recommended architecture
 
-From repo root (with Python 3.11 environment active):
+- Deploy `frontend` to Vercel
+- Deploy `backend` to a Python host (Render/Railway/Fly/VM)
+- Set `VITE_API_BASE_URL` in Vercel to your backend public URL
 
-```bash
-python final_train.py
+This project uses TensorFlow model artifacts, which are typically not suitable for Vercel Serverless limits. Frontend-on-Vercel + backend-on-Python-host is the reliable production setup.
+
+### Deploy frontend to Vercel
+
+1. Push repository to GitHub (already done).
+2. In Vercel, click **Add New Project** and import this repository.
+3. Set **Root Directory** to `frontend`.
+4. Build settings:
+   - Framework preset: `Vite`
+   - Build command: `npm run build`
+   - Output directory: `dist`
+5. Add environment variable in Vercel Project Settings:
+   - `VITE_API_BASE_URL=https://<your-backend-domain>`
+6. Deploy.
+
+### Important notes
+
+- `frontend/vercel.json` is included for SPA routing, so routes like `/verify` and `/model-showcase` resolve correctly.
+- API client now defaults to same-origin only in production if `VITE_API_BASE_URL` is not set, and to `http://localhost:8000` in local development.
 ```
 
 Outputs:
