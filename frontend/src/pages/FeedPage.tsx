@@ -1,11 +1,25 @@
 import gsap from 'gsap'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import StaggeredMenu from '../components/StaggeredMenu'
 import { mockArticles } from '../data/mockData'
 import { apiGet } from '../lib/api'
 import type { Article, FeedApiItem } from '../types'
 
 const COLUMN_COUNT = 6
+
+const menuItems = [
+  { label: 'Home', ariaLabel: 'Go to home page', link: '/' },
+  { label: 'About', ariaLabel: 'Learn about us', link: '/about' },
+  { label: 'AI Verification', ariaLabel: 'AI Verification', link: '/verify' },
+  { label: 'Contact', ariaLabel: 'Get in touch', link: '/contact' },
+]
+
+const socialItems = [
+  { label: 'Twitter', link: 'https://twitter.com' },
+  { label: 'GitHub', link: 'https://github.com' },
+  { label: 'LinkedIn', link: 'https://linkedin.com' },
+]
 
 const thumbnailForArticle = (seed: string) => {
   return `https://picsum.photos/seed/${seed}/720/420`
@@ -114,13 +128,15 @@ export function FeedPage() {
   const displayItems = articles
 
   const columns = useMemo(() => {
-    const baseColumns = Array.from({ length: COLUMN_COUNT }, () => []) as typeof displayItems[]
+    // Create enough duplicates to ensure smooth infinite scroll
+    const extended = [...displayItems, ...displayItems, ...displayItems]
+    const baseColumns = Array.from({ length: COLUMN_COUNT }, () => []) as typeof extended[]
 
-    displayItems.forEach((article, index) => {
+    extended.forEach((article, index) => {
       baseColumns[index % COLUMN_COUNT].push(article)
     })
 
-    return baseColumns.map((column) => [...column, ...column])
+    return baseColumns
   }, [displayItems])
 
   return (
@@ -137,11 +153,22 @@ export function FeedPage() {
         </form>
       </div>
 
-      <div className={`feed-verify-cta ${controlsVisible ? 'visible' : 'hidden'}`}>
-        <Link to="/verify" className="feed-verify-link">
-          AI News Verifier
-        </Link>
-      </div>
+      <StaggeredMenu
+        position="right"
+        items={menuItems}
+        socialItems={socialItems}
+        displaySocials={false}
+        displayItemNumbering={true}
+        menuButtonColor="#ffffff"
+        openMenuButtonColor="#fff"
+        changeMenuColorOnOpen={true}
+        colors={['#B19EEF', '#5227FF']}
+        logoUrl="/path-to-your-logo.svg"
+        accentColor="#4c00ff"
+        isFixed={true}
+        onMenuOpen={() => console.log('Menu opened')}
+        onMenuClose={() => console.log('Menu closed')}
+      />
 
       {isSearching && <div className="feed-search-status">Searching…</div>}
 
